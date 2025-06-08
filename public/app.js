@@ -5,6 +5,7 @@ let gameBoard = ["", "", "", "", "", "", "", "", ""];
 let gameActive = false;
 let isMyTurn = false;
 let gameId = "";
+let isStartSinglePlayer = false;
 
 const cells = document.querySelectorAll(".cell");
 const connectionStatusEl = document.getElementById("connectionStatus");
@@ -71,6 +72,7 @@ function handleServerMessage(data) {
 
 // ایجاد بازی جدید
 function createGame() {
+  isStartSinglePlayer = false;
   gameId = generateId();
   sendMessage({
     type: "create_game",
@@ -90,6 +92,7 @@ function onGameCreated(data) {
 
 // نمایش بخش پیوستن
 function showJoinSection() {
+  isStartSinglePlayer = false;
   document.getElementById("joinSection").style.display = "block";
 }
 
@@ -239,9 +242,13 @@ function endGame(message) {
 
 // ریست بازی
 function resetGame() {
-  sendMessage({
-    type: "reset_game",
-  });
+  if (!isStartSinglePlayer) {
+    // حالت آنلاین
+    sendMessage({ type: "reset_game" });
+  } else {
+    // حالت تک‌نفره
+    startSinglePlayer();
+  }
 }
 
 // بازی ریست شد
@@ -270,6 +277,7 @@ function onPlayerDisconnected() {
 
 // خروج از بازی
 function leaveGame() {
+  isStartSinglePlayer = false;
   if (ws) {
     ws.close();
   }
@@ -292,3 +300,157 @@ function generateId() {
 window.addEventListener("load", () => {
   connectToServer();
 });
+
+function startSinglePlayer() {
+  isStartSinglePlayer = true;
+  myPlayer = "X";
+  currentPlayer = "X";
+  gameBoard = ["", "", "", "", "", "", "", "", ""];
+  isMyTurn = true;
+  gameActive = true;
+
+  connectionPanelEl.style.display = "none";
+  gameSectionEl.classList.add("active");
+
+  playerRoleEl.textContent = myPlayer;
+  playerRoleEl.style.color = "#e53e3e";
+
+  updateGameState();
+
+  cells.forEach((cell) => {
+    cell.addEventListener("click", handleCellClickSingle);
+    cell.disabled = false;
+    cell.textContent = "";
+    cell.className = "cell";
+  });
+}
+
+function handleCellClickSingle(e) {
+  const index = parseInt(e.target.getAttribute("data-index"));
+
+  if (gameBoard[index] !== "" || !gameActive || !isMyTurn) return;
+
+  gameBoard[index] = myPlayer;
+  updateCell(index, myPlayer);
+
+  if (checkLocalWinner(gameBoard)) {
+    endGame("شما برنده شدید!");
+    highlightWinner(gameBoard);
+    return;
+  } else if (gameBoard.every((c) => c !== "")) {
+    endGame("بازی مساوی شد!");
+    return;
+  }
+
+  isMyTurn = false;
+  updateGameState();
+
+  setTimeout(() => {
+    botMove();
+  }, 600);
+}
+
+function getBestMove(board, player) {
+  let bestScore = -Infinity;
+  let move;
+
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === "") {
+      board[i] = player;
+      const score = minimax(board, 0, false);
+      board[i] = "";
+      if (score > bestScore) {
+        bestScore = score;
+        move = i;
+      }
+    }
+  }
+
+  return move;
+}
+
+function minimax(board, depth, isMaximizing) {
+  const winner = checkMinimaxWinner(board);
+  if (winner === "O") return 10 - depth;
+  if (winner === "X") return depth - 10;
+  if (board.every((cell) => cell !== "")) return 0;
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < board.length; i++) {
+      if (board[i] === "") {
+        board[i] = "O";
+        const score = minimax(board, depth + 1, false);
+        board[i] = "";
+        bestScore = Math.max(score, bestScore);
+      }
+    }
+    return bestScore;
+  } else {
+    let bestScore = Infinity;
+    for (let i = 0; i < board.length; i++) {
+      if (board[i] === "") {
+        board[i] = "X";
+        const score = minimax(board, depth + 1, true);
+        board[i] = "";
+        bestScore = Math.min(score, bestScore);
+      }
+    }
+    return bestScore;
+  }
+}
+
+function botMove() {
+  const bestMove = getBestMove(gameBoard, "O");
+  gameBoard[bestMove] = "O";
+  updateCell(bestMove, "O");
+
+  if (checkLocalWinner(gameBoard)) {
+    endGame("ربات برنده شد!");
+    highlightWinner(gameBoard);
+    return;
+  } else if (gameBoard.every((c) => c !== "")) {
+    endGame("بازی مساوی شد!");
+    return;
+  }
+
+  isMyTurn = true;
+  updateGameState();
+}
+
+function checkLocalWinner(board) {
+  const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+  return winningConditions.some(
+    ([a, b, c]) => board[a] && board[a] === board[b] && board[a] === board[c]
+  );
+}
+
+function checkMinimaxWinner(board) {
+  const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+
+  for (let [a, b, c] of winningConditions) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return board[a];
+    }
+  }
+
+  return null;
+}
