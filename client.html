@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی دوز آنلاین - WebSocket</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>🌐 بازی دوز آنلاین</h1>
+        
+        <div class="connection-panel" id="connectionPanel">
+            <div class="connection-status" id="connectionStatus">
+                آماده شروع بازی
+            </div>
+            
+            <div class="connection-controls">
+                <button class="btn host-btn" onclick="createGame()">ایجاد بازی جدید</button>
+                <button class="btn join-btn" onclick="showJoinSection()">پیوستن به بازی</button>
+            </div>
+            
+            <div id="joinSection" style="display: none;">
+                <div class="game-id-section">
+                    <input type="text" class="game-id-input" id="gameIdInput" placeholder="کد بازی را وارد کنید">
+                    <button class="btn join-btn" onclick="joinGame()" style="margin-top: 10px;">پیوستن</button>
+                </div>
+            </div>
+            
+            <div id="gameIdDisplay" style="display: none;">
+                <div class="game-id-section">
+                    <p>کد بازی شما:</p>
+                    <input type="text" class="game-id-input" id="gameIdShow" readonly>
+                    <div class="instructions">
+                        این کد را با دوست خود به اشتراک بگذارید
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-section" id="gameSection">
+            <div class="player-info">
+                <div class="game-info">
+                    <span class="online-indicator"></span>
+                    نقش شما: <span id="playerRole">-</span> | 
+                    نوبت: <span class="current-player" id="currentPlayer">X</span>
+                </div>
+            </div>
+
+            <div class="game-board" id="gameBoard">
+                <button class="cell" data-index="0"></button>
+                <button class="cell" data-index="1"></button>
+                <button class="cell" data-index="2"></button>
+                <button class="cell" data-index="3"></button>
+                <button class="cell" data-index="4"></button>
+                <button class="cell" data-index="5"></button>
+                <button class="cell" data-index="6"></button>
+                <button class="cell" data-index="7"></button>
+                <button class="cell" data-index="8"></button>
+            </div>
+
+            <div class="game-message" id="gameMessage"></div>
+
+            <div class="connection-controls">
+                <button class="btn reset-btn" onclick="resetGame()">بازی جدید</button>
+                <button class="btn" onclick="leaveGame()" style="background: #e53e3e;">خروج از بازی</button>
+            </div>
+        </div>
+    </div>
+    <script src="/app.js"></script>
+</body>
+</html>
